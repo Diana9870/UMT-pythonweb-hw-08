@@ -11,6 +11,9 @@ Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Contacts API")
 
+@app.get("/")
+def read_root():
+    return {"message": "API is working"}
 
 @app.post("/contacts/", response_model=schemas.ContactResponse)
 def create_contact(contact: schemas.ContactCreate, db: Session = Depends(get_db)):
