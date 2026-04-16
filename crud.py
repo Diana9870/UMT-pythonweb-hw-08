@@ -28,8 +28,8 @@ def update_contact(db: Session, contact_id: int, contact: schemas.ContactUpdate)
     if not db_contact:
         return None
 
-    for key, value in contact.model_dump().items():
-        setattr(db_contact, key, value)
+    for key, value in contact.model_dump(exclude_unset=True).items():
+    setattr(db_contact, key, value)
 
     db.commit()
     db.refresh(db_contact)
