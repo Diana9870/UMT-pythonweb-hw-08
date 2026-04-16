@@ -1,83 +1,82 @@
-# crud.py
 from sqlalchemy.orm import Session
-from datetime import date, timedelta
-import models, schemas
+from datetime import date
+import models
+import schemas
 
-# -------------------------
-# CREATE
-# -------------------------
+
 def create_contact(db: Session, contact: schemas.ContactCreate):
-    db_contact = models.Contact(
-        first_name=contact.first_name,
-        last_name=contact.last_name,
-        email=contact.email,
-        phone=contact.phone,
-        birthday=contact.birthday,
-        extra_data=contact.extra_data
-    )
+    db_contact = models.Contact(**contact.model_dump())
     db.add(db_contact)
     db.commit()
     db.refresh(db_contact)
     return db_contact
 
-# -------------------------
-# READ ALL
-# -------------------------
+
 def get_contacts(db: Session):
     return db.query(models.Contact).all()
 
-# -------------------------
-# READ ONE
-# -------------------------
+
 def get_contact(db: Session, contact_id: int):
-    return db.query(models.Contact).filter(models.Contact.id == contact_id).first()
-
-# -------------------------
-# UPDATE
-# -------------------------
-def update_contact(db: Session, contact_id: int, data: schemas.ContactUpdate):
-    contact = db.query(models.Contact).filter(models.Contact.id == contact_id).first()
-    if not contact:
-        return None
-    # оновлюємо тільки передані поля
-    for field, value in data.dict(exclude_unset=True).items():
-        setattr(contact, field, value)
-    db.commit()
-    db.refresh(contact)
-    return contact
-
-# -------------------------
-# DELETE
-# -------------------------
-def delete_contact(db: Session, contact_id: int):
-    contact = db.query(models.Contact).filter(models.Contact.id == contact_id).first()
-    if not contact:
-        return None
-    db.delete(contact)
-    db.commit()
-    return contact
-
-# -------------------------
-# SEARCH
-# -------------------------
-def search_contacts(db: Session, query: str):
     return db.query(models.Contact).filter(
-        (models.Contact.first_name.ilike(f"%{query}%")) |
-        (models.Contact.last_name.ilike(f"%{query}%")) |
-        (models.Contact.email.ilike(f"%{query}%"))
-    ).all()
+        models.Contact.id == contact_id
+    ).first()
 
-# -------------------------
-# UPCOMING BIRTHDAYS (7 днів)
-# -------------------------
+
+def update_contact(db: Session, contact_id: int, contact: schemas.ContactUpdate):
+    db_contact = get_contact(db, contact_id)
+
+    if not db_contact:
+        return None
+
+    for key, value in contact.model_dump().items():
+        setattr(db_contact, key, value)
+
+    db.commit()
+    db.refresh(db_contact)
+    return db_contact
+
+
+def delete_contact(db: Session, contact_id: int):
+    db_contact = get_contact(db, contact_id)
+
+    if not db_contact:
+        return None
+
+    db.delete(db_contact)
+    db.commit()
+    return db_contact
+
+
+def search_contacts(db: Session, first_name=None, last_name=None, email=None):
+    query = db.query(models.Contact)
+
+    if first_name:
+        query = query.filter(models.Contact.first_name.ilike(f"%{first_name}%"))
+
+    if last_name:
+        query = query.filter(models.Contact.last_name.ilike(f"%{last_name}%"))
+
+    if email:
+        query = query.filter(models.Contact.email.ilike(f"%{email}%"))
+
+    return query.all()
+
+
 def upcoming_birthdays(db: Session):
     today = date.today()
-    next_week = today + timedelta(days=7)
+    result = []
+
     contacts = db.query(models.Contact).all()
-    upcoming = []
-    for c in contacts:
-        # беремо день і місяць дати народження
-        birthday_this_year = c.birthday.replace(year=today.year)
-        if today <= birthday_this_year <= next_week:
-            upcoming.append(c)
-    return upcoming
+
+    for contact in contacts:
+        birthday = contact.birthday.replace(year=today.year)
+
+        if birthday < today:
+            birthday = birthday.replace(year=today.year + 1)
+
+        delta = (birthday - today).days
+
+        if 0 <= delta <= 7:
+            result.append(contact)
+
+    return result
