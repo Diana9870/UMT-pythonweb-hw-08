@@ -1,6 +1,6 @@
 from pydantic import BaseModel, EmailStr
-from typing import Optional
 from datetime import date
+from typing import Optional
 
 
 class ContactBase(BaseModel):
@@ -9,7 +9,7 @@ class ContactBase(BaseModel):
     email: EmailStr
     phone: str
     birthday: date
-    extra_data: Optional[str] = None
+    additional_data: Optional[str] = None
 
 
 class ContactCreate(ContactBase):
@@ -17,17 +17,16 @@ class ContactCreate(ContactBase):
 
 
 class ContactUpdate(BaseModel):
-    first_name: Optional[str] = None
-    last_name: Optional[str] = None
-    email: Optional[EmailStr] = None
-    phone: Optional[str] = None
-    birthday: Optional[date] = None
-    extra_data: Optional[str] = None
+    first_name: Optional[str]
+    last_name: Optional[str]
+    email: Optional[EmailStr]
+    phone: Optional[str]
+    birthday: Optional[date]
+    additional_data: Optional[str]
 
 
 class ContactResponse(ContactBase):
     id: int
 
     class Config:
-        from_attributes = True  
-
+        from_attributes = True

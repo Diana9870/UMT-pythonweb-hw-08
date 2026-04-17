@@ -1,8 +1,8 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import extract
 from datetime import date, timedelta
 
-from . import models, schemas
+import models
+import schemas
 
 
 def get_contacts(db: Session, skip: int = 0, limit: int = 100):
@@ -50,12 +50,17 @@ def delete_contact(db: Session, contact_id: int):
     return db_contact
 
 
-def search_contacts(db: Session, query: str):
-    return db.query(models.Contact).filter(
-        (models.Contact.first_name.ilike(f"%{query}%")) |
-        (models.Contact.last_name.ilike(f"%{query}%")) |
-        (models.Contact.email.ilike(f"%{query}%"))
-    ).all()
+def search_contacts(db: Session, first_name=None, last_name=None, email=None):
+    query = db.query(models.Contact)
+
+    if first_name:
+        query = query.filter(models.Contact.first_name.ilike(f"%{first_name}%"))
+    if last_name:
+        query = query.filter(models.Contact.last_name.ilike(f"%{last_name}%"))
+    if email:
+        query = query.filter(models.Contact.email.ilike(f"%{email}%"))
+
+    return query.all()
 
 
 def get_upcoming_birthdays(db: Session):
